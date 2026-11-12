@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CfD Settlement Trace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a short design note to present in five minutes. Four sections on the page, supporting detail behind buttons in a navy bar. Light theme only, by choice. */
+:root{color-scheme:light;
+  --bg:#ffffff; --panel:#f4f5f8; --ink:#16163a; --ink-2:#555b6e; --line:#d9dce4; --navy:#0b0b83;
+  --s1:#2a78d6; --s2:#eb6834; --band:#eb683418; --good:#1b7a4c; --good-bg:#e3f3ea; --bad:#b3261e; --bad-bg:#fbe9e7;
+  --body:"Lato","Segoe UI",system-ui,sans-serif; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--body)}
+a{color:var(--navy)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+header{padding:38px 0 26px}
+.eyebrow{font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--navy)}
+h1{font-weight:900;font-size:clamp(28px,4.4vw,40px);line-height:1.15;margin:12px 0 12px;max-width:22ch;text-wrap:balance}
+h2{font-weight:900;font-size:24px;line-height:1.25;margin:0 0 8px;text-wrap:balance}
+h2 small{display:block;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin-bottom:2px}
+h3{font-weight:700;font-size:16px;margin:0 0 8px}
+p{margin:0 0 12px;max-width:70ch}
+.lede{font-size:18px;color:var(--ink-2);max-width:64ch}
+.note{font-size:14px;color:var(--ink-2)}
+.bar{position:sticky;top:0;z-index:5;background:var(--navy);color:#fff}
+.bar .wrap{display:flex;gap:6px;align-items:center;overflow-x:auto;padding-top:9px;padding-bottom:9px}
+.bar span{flex:none;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.8;margin-right:6px}
+.bar button{flex:none;font:700 14px var(--body);color:#fff;background:none;border:1px solid #ffffff80;border-radius:4px;padding:8px 12px;cursor:pointer}
+.bar button:hover{background:#ffffff22}
+section{padding:36px 0 4px}
+.panel{background:var(--panel);border-radius:6px;padding:20px}
+.grid{display:grid;gap:14px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.fig{border-top:4px solid var(--navy);padding-top:12px}
+.fig b{display:block;font-weight:900;font-size:28px;line-height:1.15;font-variant-numeric:tabular-nums}
+.fig span{font-size:14.5px;color:var(--ink-2)}
+.controls{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:end;margin:0 0 14px}
+.lab{font-size:13.5px;color:var(--ink-2);margin-bottom:5px}
+input[type=search]{font:15px var(--body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:4px;padding:9px 10px;min-width:0}
+.seg{display:inline-flex;flex-wrap:wrap;gap:6px}
+.seg button{font:700 14px var(--body);color:var(--navy);background:#fff;border:1px solid var(--navy);border-radius:4px;padding:9px 13px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--navy);color:#fff}
+:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
+.pill{display:inline-block;font-weight:700;font-size:12.5px;line-height:1;padding:5px 9px;border-radius:99px;white-space:nowrap}
+.pill.ok{background:var(--good-bg);color:var(--good)} .pill.no{background:var(--bad-bg);color:var(--bad)} .pill.na{background:#e6e8ef;color:var(--ink-2)}
+.result{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:4px 0 6px}
+.result b{display:block;font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+.result span{font-size:13.5px;color:var(--ink-2)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums;background:#fff}
+th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:13px;color:var(--ink-2)}
+td.r,th.r{text-align:right}
+td.id,code{font-family:var(--mono);font-size:13px}
+td.id{white-space:nowrap}
+svg{display:block;width:100%;height:auto}
+svg text{font:11px var(--body);fill:var(--ink-2)}
+.gridl{stroke:var(--line)} .zero{stroke:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--ink-2);margin:4px 0 8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px}
+.ctitle{font-weight:700;font-size:14.5px;margin:14px 0 2px}
+.hbar{display:grid;grid-template-columns:1fr auto;grid-template-areas:"l n" "t t";gap:3px 12px;align-items:baseline;font-size:14px;margin:11px 0}
+.hbar>span:first-child{grid-area:l;font-weight:700}.hbar .track{grid-area:t}.hbar>.note{grid-area:n}
+.hbar .track{display:flex;gap:2px;height:16px}
+.hbar .track span{display:block;height:100%;border-radius:3px}
+.tip{position:fixed;z-index:40;pointer-events:none;background:var(--ink);color:#fff;font:13px/1.4 var(--body);padding:7px 9px;border-radius:4px;max-width:250px;white-space:pre-line;display:none}
+dl{display:grid;grid-template-columns:130px 1fr;gap:8px 16px;margin:0;font-size:15px}
+dt{font-weight:700} dd{margin:0}
+ul{margin:0;padding-left:20px} li{margin:5px 0}
+.lane{fill:#fff;stroke:var(--line)} .lane.alt{fill:var(--panel)}
+.step rect{fill:#fff;stroke:var(--navy);stroke-width:1.5} .step text{fill:var(--ink);font-size:11.5px;font-weight:700}
+.step:hover rect{fill:#e9e9f7}
+.arrow{fill:none;stroke:var(--navy);stroke-width:1.5}
+.lanet{font-weight:700;font-size:12px;fill:var(--navy)}
+.shade{position:fixed;inset:0;background:#16163a66;z-index:20;display:none}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(680px,100%);background:#fff;z-index:30;overflow:auto;padding:22px 24px 40px;box-shadow:-8px 0 30px #0003;display:none}
+.drawer.open,.shade.open{display:block}
+.drawer .x{float:right;font:700 14px var(--body);color:var(--navy);background:#fff;border:1px solid var(--navy);border-radius:4px;padding:7px 11px;cursor:pointer}
+.drawer h2{margin-top:4px}
+pre{background:var(--ink);color:#e8e9f5;font:12.5px/1.5 var(--mono);padding:14px;border-radius:6px;overflow-x:auto;margin:0 0 12px}
+pre.out{background:var(--panel);color:var(--ink)}
+footer{margin-top:40px;padding:24px 0 46px;border-top:1px solid var(--line);color:var(--ink-2);font-size:14px}
+@media (max-width:640px){dl{grid-template-columns:1fr;gap:2px 0}dd{margin-bottom:10px}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="eyebrow">Contracts for Difference · settlement design note · v1.0</div>
+  <h1>How a CfD payment is calculated, tested against real settlement data</h1>
+  <p class="lede">I took Settlement Day 12 April 2026, recalculated three CfD generator payments from public Elexon and LCCC data, and compared them with the payments LCCC published.</p>
+  <p class="note"><b style="color:var(--ink)">In scope:</b> daily Difference Amounts for intermittent CfD generators. <b style="color:var(--ink)">Out of scope:</b> baseload units, private wire, supplier levies, Capacity Market and Nuclear RAB.</p>
+  <p class="note" style="margin:0"><b style="color:var(--ink)">Nishant Vatnal</b> · November 2026</p>
+</div></header>
+
+<div class="bar"><div class="wrap"><span>Behind the work</span>
+  <button type="button" data-d="worked">Worked example and tools</button><button type="button" data-d="code">SQL and Python</button><button type="button" data-d="catalogue">Data catalogue</button><button type="button" data-d="log">Assumptions log</button><button type="button" data-d="map">Interface mapping</button>
+</div></div>
+
+<main class="wrap">
+<section style="padding-top:30px"><div class="grid g3" id="figs"></div></section>
+
+<section>
+  <h2><small>1 · Process</small>From meter to payment</h2>
+  <p>The daily generator payment as I read it from EMRS Working Practice WP1. Hover over a step for detail.</p>
+  <div class="scroll"><div style="min-width:760px" id="swim"></div></div>
+  <p class="note" style="margin-top:8px">The Market Reference Price enters at the calculation step. For intermittent generators it is the hourly day-ahead price (IMRP). Later BSC settlement runs revise Metered Volumes, so the Difference Amount is recalculated at each run.</p>
+</section>
+
+<section>
+  <h2><small>2 · Calculation model and tests</small>Does my calculation match the published payment?</h2>
+  <p>The price was below £0 for twelve hours that day, so the answer depends on the contract's negative-price rule. Pick a test case, then try each rule.</p>
+  <div class="panel">
+    <div class="controls">
+      <div><div class="lab">Test case</div><div class="seg" id="cases" role="group" aria-label="Test case"></div></div>
+      <div><div class="lab">Negative-price rule</div><div class="seg" id="rules" role="group" aria-label="Negative-price rule"></div></div>
+    </div>
+    <div class="result" id="result"></div>
+    <p class="note" id="unitNote" style="margin-top:10px"></p>
+    <div class="ctitle">Market Reference Price (IMRP) by hour, £/MWh</div>
+    <div class="scroll"><div style="min-width:600px" id="chPrice"></div></div>
+    <div class="ctitle">Metered Output by hour, MWh</div>
+    <div class="legend"><span><i style="background:var(--s1)"></i>Earns a Difference Amount under the selected rule</span><span><i style="background:var(--s2)"></i>Earns nothing under the selected rule</span><span><i style="background:var(--band);outline:1px solid var(--s2)"></i>Price below £0</span></div>
+    <div class="scroll"><div style="min-width:600px" id="chGen"></div></div>
+  </div>
+  <h3 style="margin-top:18px">Test results</h3>
+  <div class="scroll"><table id="tests" style="min-width:720px"></table></div>
+  <p class="note" style="margin-top:8px">LCCC's published generation is 1% to 3% below the BM Unit volume. That is consistent with a transmission loss adjustment, which I have not yet verified, so I show the result both ways.</p>
+</section>
+
+<section>
+  <h2><small>3 · Findings</small>What the published payments show</h2>
+  <p>If every MWh earned a Difference Amount, then (Strike Price − weighted reference price) × generation equals the payment. Where it falls short, the gap shows how much volume earned nothing.</p>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+    <div class="panel"><h3>12 April: price below £0 for twelve hours</h3>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Paid</span><span><i style="background:var(--s2)"></i>Not paid</span></div>
+      <div id="roundBars"></div></div>
+    <div class="panel"><h3>11 April: price below £0 for five hours</h3>
+      <p class="note">A boundary test. Five hours is one short of the six-hour rule, so the two rules should now give different results.</p>
+      <div class="scroll"><table id="day2"></table></div></div>
+  </div>
+  <ul style="margin:16px 0 0" id="findList"></ul>
+</section>
+
+<section>
+  <h2><small>4 · Impact assessment</small>If a new allocation round changed the negative-price rule</h2>
+  <p>This has happened before: Allocation Round 4 moved from the six-hour rule to no payment in any negative hour. This is how I would start assessing the next change of that kind.</p>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+    <div class="panel"><h3>What it would touch</h3><dl>
+      <dt>Systems</dt><dd>Contract standing data, the Difference Amount calculation, recalculation on later runs.</dd>
+      <dt>Processes</dt><dd>Contract set-up, billing statements, payment disputes.</dd>
+      <dt>Interfaces</dt><dd>Contract details from LCCC, which would need to carry the rule for each contract.</dd>
+      <dt>Data</dt><dd>The rule and its effective dates per contract. Hourly prices kept as received.</dd>
+      <dt>Users</dt><dd>EMRS settlement operations, LCCC contract managers, generators.</dd>
+      <dt>Dependencies</dt><dd>Final contract terms for the round. Test data for a day with negative prices.</dd>
+    </dl></div>
+    <div class="panel"><h3>Options</h3>
+      <div class="scroll"><table>
+        <tr><th>Option</th><th>For</th><th>Against</th></tr>
+        <tr><td><b>A.</b> Set the rule by allocation round in the calculation</td><td>Quick to build</td><td>The data shows the round does not decide the rule. Each new round is a code change.</td></tr>
+        <tr><td><b>B.</b> Hold the rule as dated standing data on each contract <span class="pill ok">Recommended</span></td><td>Handles exceptions. A new contract needs data, not code.</td><td>Needs the rule supplied and governed for every contract.</td></tr>
+        <tr><td><b>C.</b> Make the rule fully configurable (threshold hours, floor on or off)</td><td>Most flexible</td><td>More to test and control. Worth it only if rules keep changing.</td></tr>
+      </table></div>
+      <p class="note" style="margin:10px 0 0">I assume EMRS already works something like option B. I would confirm that first, before proposing anything.</p>
+    </div>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">Nishant Vatnal · nishantvatnal@yahoo.com · linkedin.com/in/nishant-vatnal<br>Independent work using open data. Not affiliated with Elexon, EMRS or LCCC.</div></footer>
+
+<div class="shade" id="shade"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle"><button type="button" class="x" id="dClose">Close</button><div id="dBody"></div></aside>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<template id="t-worked"><h2 id="dTitle">Worked example and tools</h2>
+  <p>One hour of test case 1, Cleve Hill Solar Project, start to finish.</p>
+  <div class="scroll"><table id="worked"></table></div>
+  <h3 style="margin-top:18px">Tools</h3>
+  <ul><li>DuckDB SQL and Python (pandas) for the analysis.</li><li>Data from the LCCC Data Portal API and the Elexon Insights API, pulled on 11 November 2026.</li><li>HTML and JavaScript for this page, built with help from an AI assistant.</li></ul>
+  <h3 style="margin-top:18px">Sources</h3>
+  <ul><li><a href="https://dp.lowcarboncontracts.uk/dataset/actual-cfd-generation-and-avoided-ghg-emissions" target="_blank" rel="noopener">LCCC: Actual CfD Generation</a></li>
+  <li><a href="https://dp.lowcarboncontracts.uk/dataset/imrp-actuals" target="_blank" rel="noopener">LCCC: IMRP actuals</a></li>
+  <li><a href="https://dp.lowcarboncontracts.uk/dataset/cfd-to-bm-unit-mapping" target="_blank" rel="noopener">LCCC: CfD to BM Unit Mapping</a></li>
+  <li><a href="https://bmrs.elexon.co.uk/api-documentation" target="_blank" rel="noopener">Elexon Insights API, dataset B1610</a></li>
+  <li><a href="https://www.emrsettlement.co.uk/document/working-practice/wp1-overview-of-settlement/" target="_blank" rel="noopener">EMRS WP1: Overview of Settlement, v18.0</a></li></ul>
+</template>
+<template id="t-code"><h2 id="dTitle">SQL and Python</h2>
+  <h3>SQL: the check across all units (section 3)</h3><pre>-- Which contract rounds had volume that earned no Difference Amount?
+-- If every MWh is paid: (strike - weighted price) x generation = payment
+SELECT contract_round,
+       count(*)                                          AS units,
+       count(*) FILTER (WHERE unpaid)                    AS units_with_unpaid_hours,
+       round(sum(generation_mwh))                        AS generation_mwh,
+       round(sum(CASE WHEN unpaid THEN gap / strike ELSE 0 END)) AS unpaid_mwh
+FROM (
+    SELECT *,
+           expected - payment_gbp AS gap,
+           abs(expected - payment_gbp) &gt; greatest(1, 0.0005 * abs(expected)) AS unpaid
+    FROM (
+        SELECT *, (strike - weighted_price) * generation_mwh AS expected
+        FROM &#x27;cfd_actuals_2026-04-12.csv&#x27;
+        WHERE reference_type = &#x27;IMRP&#x27; AND generation_mwh &gt; 0
+    )
+)
+GROUP BY contract_round
+ORDER BY contract_round</pre><pre class="out">┌────────────────┬───────┬─────────────────────────┬────────────────┬────────────┐
+│ contract_round │ units │ units_with_unpaid_hours │ generation_mwh │ unpaid_mwh │
+│    varchar     │ int64 │          int64          │     double     │   double   │
+├────────────────┼───────┼─────────────────────────┼────────────────┼────────────┤
+│ AR1            │    20 │                       0 │        33659.0 │        0.0 │
+│ AR2            │     9 │                       6 │        35464.0 │    22279.0 │
+│ AR4            │    22 │                      18 │         1929.0 │      931.0 │
+│ AR5            │     2 │                       2 │          127.0 │       89.0 │
+│ AR6            │     2 │                       2 │          195.0 │      152.0 │
+│ INV            │    11 │                       5 │        55267.0 │    20210.0 │
+└────────────────┴───────┴─────────────────────────┴────────────────┴────────────┘</pre>
+  <h3>Python: the hourly calculation (section 2)</h3><pre>import pandas as pd
+
+imrp  = pd.read_csv(&quot;imrp_2026-04-12.csv&quot;)    # hour, price
+b1610 = pd.read_csv(&quot;b1610_2026-04-12.csv&quot;)   # bm_unit, settlement_period, mwh
+
+def difference_amount(bm_unit, strike, rule):
+    hh = b1610[b1610.bm_unit == bm_unit].copy()
+    hh[&quot;hour&quot;] = (hh.settlement_period + 1) // 2          # two half-hours per hourly price
+    hh[&quot;mwh&quot;]  = hh.mwh.clip(lower=0)                     # ignore small imports
+    df = hh.groupby(&quot;hour&quot;, as_index=False).mwh.sum().merge(imrp, on=&quot;hour&quot;)
+
+    negative = df.price &lt; 0
+    run_length = negative.groupby((negative != negative.shift()).cumsum()).transform(&quot;sum&quot;)
+    paid = {&quot;floor&quot;: pd.Series(True, index=df.index),      # negative price treated as zero
+            &quot;six&quot;:   ~(negative &amp; (run_length &gt;= 6)),      # no payment in a run of 6+ negative hours
+            &quot;any&quot;:   ~negative}[rule]                      # no payment in any negative hour
+
+    return (df.mwh * (strike - df.price.clip(lower=0)) * paid).sum()
+
+for name, bm_unit, strike, rule, published in [
+    (&quot;Cleve Hill&quot;,          &quot;T_CLVHS-1&quot;,  62.99, &quot;any&quot;,   3606.45),
+    (&quot;Hornsea Two Phase 1&quot;, &quot;T_HOWBO-1&quot;,  82.49, &quot;six&quot;, 116393.73),
+    (&quot;Hornsea One Phase 1&quot;, &quot;T_HOWAO-2&quot;, 206.06, &quot;six&quot;, 484233.18)]:
+    mine = difference_amount(bm_unit, strike, rule)
+    print(f&quot;{name:20s} mine {mine:12,.2f}  published {published:12,.2f}  {100 * (mine / published - 1):+.2f}%&quot;)</pre><pre class="out">Cleve Hill           mine     3,627.52  published     3,606.45  +0.58%
+Hornsea Two Phase 1  mine   118,945.46  published   116,393.73  +2.19%
+Hornsea One Phase 1  mine   497,353.82  published   484,233.18  +2.71%</pre>
+  <p class="note">The Python output is before loss adjustment. It matches the "before" column in the test results.</p>
+</template>
+<template id="t-catalogue"><h2 id="dTitle">Data catalogue</h2>
+  <p>The fields this work depends on, and what I learned about each.</p>
+  <div class="scroll"><table style="min-width:600px"><tr><th>Field</th><th>Source and grain</th><th>Meaning</th><th>Note</th></tr>
+  <tr><td class="id">quantity</td><td>Elexon B1610. BM Unit, half hour.</td><td>Metered output, MWh</td><td>Carries its settlement run (R3 here). Small negatives when the site imports.</td></tr>
+  <tr><td class="id">IMRP_Amount</td><td>LCCC IMRP actuals. Hour.</td><td>Intermittent Market Reference Price, £/MWh</td><td>24 hourly periods per Settlement Day. Can be negative.</td></tr>
+  <tr><td class="id">Strike_Price</td><td>LCCC actuals. Unit, day.</td><td>Strike Price applying that day</td><td>Indexed each April. Cleve Hill moved from £61.16 to £62.99 on 1 April 2026.</td></tr>
+  <tr><td class="id">CFD_Generation_MWh</td><td>LCCC actuals. Unit, day.</td><td>Generation eligible for CfD payment</td><td>1% to 3% below BM Unit volume. Consistent with loss adjustment.</td></tr>
+  <tr><td class="id">CFD_Payments_GBP</td><td>LCCC actuals. Unit, day.</td><td>Difference Amount for the day</td><td>Positive is paid to the generator. Negative is paid by the generator.</td></tr>
+  <tr><td class="id">Weighted_IMRP</td><td>LCCC actuals. Unit, day.</td><td>Reference price weighted by the unit's hourly output</td><td>Negative hours count as £0. My calculation reproduces it only that way.</td></tr>
+  <tr><td class="id">Market_Reference_Price</td><td>LCCC actuals. Day.</td><td>Daily average reference price</td><td>Also counts negative hours as £0: £33.15 published, £32.11 as a plain average.</td></tr>
+  <tr><td class="id">CFD_Id, BMU_Id</td><td>LCCC mapping. Relationship with dates.</td><td>Which BM Units feed which contract</td><td>Not always one to one. Changes over time.</td></tr></table></div>
+</template>
+<template id="t-log"><h2 id="dTitle">Assumptions log</h2>
+  <p>What I assumed, what is still open, and who could confirm it.</p>
+  <div class="scroll"><table style="min-width:600px"><tr><th>ID</th><th>Assumption or question</th><th>How to confirm</th><th>Status</th></tr>
+  <tr><td>A1</td><td>The gap between LCCC generation and BM Unit volume is the transmission loss adjustment.</td><td>Elexon's published Transmission Loss Multipliers</td><td><span class="pill na">Open</span></td></tr>
+  <tr><td>A2</td><td>The three negative-price rules are as public commentary describes them.</td><td>CfD Standard Terms for each round</td><td><span class="pill na">To confirm</span></td></tr>
+  <tr><td>A3</td><td>Why do Hornsea One and Walney Extension, both Investment Contracts, behave like six-hour-rule contracts?</td><td>The contract terms, or LCCC</td><td><span class="pill na">Open</span></td></tr>
+  <tr><td>A4</td><td>LCCC's figures rest on a settlement run close to R3.</td><td>LCCC or EMRS</td><td><span class="pill na">Open</span></td></tr>
+  <tr><td>A5</td><td>Hourly price period h covers settlement periods 2h − 1 and 2h. Clock-change days will differ.</td><td>IMRP definition. Test on a clock-change day.</td><td><span class="pill na">Assumed</span></td></tr>
+  <tr><td>A6</td><td>One day cannot separate the six-hour rule from the any-negative-hour rule.</td><td>A day with a shorter negative run</td><td><span class="pill ok">Closed by the 11 April test</span></td></tr></table></div>
+</template>
+<template id="t-map"><h2 id="dTitle">Interface mapping</h2>
+  <p>LCCC's published mapping of CfD contracts to BM Units. The calculation in section 2 works because its three contracts each map to one BM Unit.</p>
+  <div class="controls"><div><div class="lab">Relationship</div><div class="seg" id="mapChips"></div></div><div><div class="lab">Search</div><input type="search" id="mQ" placeholder="e.g. T_BENBW-1"></div></div>
+  <p class="note" id="mCount"></p>
+  <div class="scroll" style="max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:6px"><table id="mTable" style="min-width:560px"></table></div>
+  <ul style="margin-top:14px"><li><b>One BM Unit, several contracts.</b> T_BENBW-1 serves three contracts from two rounds, so its volume must be split before any payment is calculated.</li>
+  <li><b>Mappings change.</b> Triangle Farm Solar Park has moved through four Supplier BM Units since 2017. An old Settlement Day needs the mapping that applied then.</li>
+  <li><b>Some rows start in the future.</b> AR4-KWE-610 is mapped from 31 March 2027.</li></ul>
+</template>
+
+<script>
+const D={"imrp":[2.01,2.26,0.48,-0.29,-1.44,-0.02,-1.75,-0.89,-1.16,-1.4,-3.83,-4.0,-4.26,-4.28,-1.5,2.07,36.73,86.78,112.25,117.87,116.45,115.13,105.29,98.21],"b1610":{"T_CLVHS-1":[-0.13,-0.12,-0.11,-0.11,-0.13,-0.13,-0.115,-0.13,-0.13,-0.1,-0.13,-0.115,0.08,2.33,5.94,10.29,14.72,20.39,19.14,18.22,-0.155,-0.215,-0.17,-0.23,-0.315,-0.345,-0.245,-0.07,25.505,26.195,31.29,32.2,28.49,23.29,17.99,12.51,9.735,5.805,1.985,-0.075,-0.34,-0.13,-0.11,-0.125,-0.13,-0.105,-0.125,-0.12],"T_HOWAO-2":[199.767,199.767,199.717,199.777,199.737,199.807,199.757,199.787,196.047,192.587,199.547,198.047,198.607,199.757,199.647,199.987,199.777,199.737,199.767,199.767,199.787,199.747,199.737,199.757,199.827,199.737,199.207,192.297,195.487,199.747,199.817,192.547,158.257,130.077,146.457,132.597,116.427,55.587,28.007,47.637,73.667,114.147,129.607,117.667,89.107,69.947,59.527,51.517],"T_HOWBO-1":[218.392,218.442,218.412,218.492,218.312,218.462,218.402,218.442,218.472,218.442,218.422,218.422,218.462,218.432,218.442,218.432,218.482,218.402,218.432,218.452,218.462,218.422,218.412,218.462,218.452,217.342,208.352,181.042,178.492,188.643,186.452,174.632,146.542,94.472,100.632,96.903,84.472,57.432,50.702,59.922,87.392,88.842,96.842,103.892,99.322,73.342,59.142,48.542]},"portfolio":[["AAA-ACH-183","Achlachan Wind Farm","Onshore Wind","AR1","IMRP","195.3360","121.7900","16404.1000","37.8103","33.1471"],["AAA-BAD-185","Bad A Cheo Wind Farm","Onshore Wind","AR1","IMRP","505.9470","120.4600","45757.7300","30.0206","33.1471"],["AAA-BAN-189","Kype Muir Wind Farm","Onshore Wind","AR1","IMRP","1553.5330","120.2800","149753.4600","23.8845","33.1471"],["AAA-BAN-190","Moor House Wind Farm","Onshore Wind","AR1","IMRP","223.6410","121.7900","23095.5200","18.5198","33.1471"],["AAA-BAN-192","Middle Muir Wind Farm","Onshore Wind","AR1","IMRP","773.3600","120.2800","78677.3500","18.5453","33.1471"],["AAA-BRE-177","Brenig Wind Farm","Onshore Wind","AR1","IMRP","648.6060","116.9600","66219.9200","14.8644","33.1471"],["AAA-CAM-197","Triangle Farm Solar Park","Solar PV","AR1","IMRP","58.0210","116.9600","6084.3000","12.0978","33.1471"],["AAA-CLO-186","Clocaenog Forest Wind Farm","Onshore Wind","AR1","IMRP","1480.6660","121.7900","160267.6000","13.5499","33.1471"],["AAA-COI-196","Coire Na Cloiche Windfarm","Onshore Wind","AR1","IMRP","270.5660","121.7900","22334.3000","39.2429","33.1471"],["AAA-COM-191","Common Barn Wind Farm","Onshore Wind","AR1","IMRP","105.4240","121.7900","11942.0600","8.5138","33.1471"],["AAA-DOR-182","Dorenell Wind Farm","Onshore Wind","AR1","IMRP","2581.8270","120.2800","252784.1200","22.3710","33.1471"],["AAA-K3C-180","K3 CHP Facility","Energy from Waste","AR1","BMRP","514.5710","118.1000","22023.6200","75.3000","75.3000"],["AAA-LIG-176","Charity Farm","Solar PV","AR1","IMRP","51.6700","116.9600","5266.4100","15.0383","33.1471"],["AAA-MYN-178","Mynydd Y Gwair Wind Farm","Onshore Wind","AR1","IMRP","566.5870","118.0800","57705.2200","16.2332","33.1471"],["AAA-NAN-184","Nanclach Wind Farm","Onshore Wind","AR1","IMRP","0.0000","121.7900","0.0000","","33.1471"],["AAA-NEA-195","Neart na Gaoithe","Offshore Wind","AR1","IMRP","8679.2830","167.6800","1161491.6200","33.8565","33.1471"],["AAA-PNE-187","Tralorg Wind Farm","Onshore Wind","AR1","IMRP","286.4920","120.2800","29911.8800","15.8731","33.1471"],["AAA-SNE-179","Sneddon Law Community Wind Farm","Onshore Wind","AR1","IMRP","489.1140","118.0800","47820.0000","20.3113","33.1471"],["AAA-SOL-181","Solwaybank Wind Farm","Onshore Wind","AR1","IMRP","624.4050","121.7900","61917.4200","22.6274","33.1471"],["AR2-HRN-106","Hornsea Project 2 Phase 1","Offshore Wind","AR2","IMRP","7981.0730","82.4900","116393.7300","16.0483","33.1471"],["AR2-HRN-206","Hornsea Project 2 Phase 2","Offshore Wind","AR2","IMRP","7637.7320","82.4900","117113.0300","13.0283","33.1471"],["AR2-HRN-306","Hornsea Project 2 Phase 3","Offshore Wind","AR2","IMRP","7531.6340","82.4900","105969.0800","14.2171","33.1471"],["AR2-MRY-107","Moray Offshore Windfarm (East) Phase 1","Offshore Wind","AR2","IMRP","69.7200","82.3400","4003.5000","24.9171","33.1471"],["AR2-MRY-207","Moray Offshore Windfarm (East) Phase 2","Offshore Wind","AR2","IMRP","63.6770","82.3400","3656.5400","24.9177","33.1471"],["AR2-MRY-307","Moray Offshore Windfarm (East) Phase 3","Offshore Wind","AR2","IMRP","69.7200","82.3400","4003.5000","24.9171","33.1471"],["AR2-TKN-103","Triton Knoll Offshore Wind Farm Phase 1","Offshore Wind","AR2","IMRP","3097.9470","108.2000","88377.7400","14.4371","33.1471"],["AR2-TKN-203","Triton Knoll Offshore Wind Farm Phase 2","Offshore Wind","AR2","IMRP","3097.9470","108.2000","88377.7400","14.4371","33.1471"],["AR2-TKN-303","Triton Knoll Offshore Wind Farm Phase 3","Offshore Wind","AR2","IMRP","5914.2600","108.2000","168721.1700","14.4370","33.1471"],["AR4-ADS-700","Adstock","Solar PV","AR4","IMRP","23.8120","67.8900","203.1900","56.0600","33.1471"],["AR4-ASF-700","Alfreton Solar Farm","Solar PV","AR4","IMRP","24.4220","67.8900","482.1100","48.0699","33.1471"],["AR4-BFS-700","Bracks Farm Solar Park","Solar PV","AR4","IMRP","31.1490","67.8900","298.3200","57.9302","33.1471"],["AR4-BHL-700","Bunkers Hill","Solar PV","AR4","IMRP","65.2210","67.8900","1416.9900","45.7434","33.1471"],["AR4-BRN-700","Braintree","Solar PV","AR4","IMRP","37.1610","67.8900","1141.4900","28.3836","33.1471"],["AR4-BSL-700","Basildon","Solar PV","AR4","IMRP","26.7170","67.8900","823.5900","29.9633","33.1471"],["AR4-BSP-700","Bishampton Solar PV","Solar PV","AR4","IMRP","0.0000","67.8900","0.0000","","33.1471"],["AR4-CLH-710","Cleve Hill Solar Project","Solar PV","AR4","IMRP","303.4980","62.9900","3606.4500","21.7692","33.1471"],["AR4-CNS-700","Carn Nicholas Solar Farm","Solar PV","AR4","IMRP","16.6520","67.8900","524.9600","36.3552","33.1471"],["AR4-DRF-700","Driffield","Solar PV","AR4","IMRP","53.6500","67.8900","1042.3100","33.8352","33.1471"],["AR4-DVR-700","Doverdale","Solar PV","AR4","IMRP","237.7120","67.8900","1666.6600","10.6510","33.1471"],["AR4-EST-700","Eastfields","Solar PV","AR4","IMRP","53.6730","67.8900","1376.9800","42.0287","33.1471"],["AR4-IGS-700","Inkersall Grange Solar Farm","Solar PV","AR4","IMRP","244.7950","67.8900","2104.3500","17.1554","33.1471"],["AR4-LFS-700","Low Farm Solar Park","Solar PV","AR4","IMRP","48.0370","67.8900","-273.2500","19.1046","33.1471"],["AR4-LSF-700","Litchardon Solar Farm","Solar PV","AR4","IMRP","0.0000","67.8900","0.0000","","33.1471"],["AR4-LYR-700","Layer","Solar PV","AR4","IMRP","77.7930","67.8900","2379.5600","30.0383","33.1471"],["AR4-MFS-700","Bicker Fen Solar Limited","Solar PV","AR4","IMRP","22.4930","67.8900","305.8900","54.2884","33.1471"],["AR4-NEL-700","Whitecross Solar Farm","Solar PV","AR4","IMRP","36.0920","67.8900","606.4300","51.0887","33.1471"],["AR4-SCL-700","St Cleres","Solar PV","AR4","IMRP","26.8100","67.8900","894.0700","27.6374","33.1471"],["AR4-SDS-700","Scurf Dyke Solar","Solar PV","AR4","IMRP","321.2320","67.8900","1795.0800","9.2700","33.1471"],["AR4-SID-700","Siddington Solar Park","Solar PV","AR4","IMRP","22.5580","67.8900","502.9800","39.8225","33.1471"],["AR4-SSF-700","Stokeford Solar Farm","Solar PV","AR4","IMRP","25.6810","67.8900","69.2200","65.1947","33.1471"],["AR4-STV-700","Staveley","Solar PV","AR4","IMRP","32.0690","67.8900","706.8400","38.6285","33.1471"],["AR4-YSF-700","Yelvertoft Solar Farm","Solar PV","AR4","IMRP","197.2830","67.8900","1789.8900","12.2930","33.1471"],["AR5-ALS-700","Aller Langport Solar Park","Solar PV","AR5","IMRP","67.3700","69.3800","395.3200","14.9400","33.1471"],["AR5-RWS-700","Rampisham Woods Solar","Solar PV","AR5","IMRP","59.7710","69.3800","530.0000","12.5051","33.1471"],["AR6-HLS-700","Horsey Level Solar Park","Solar PV","AR6","IMRP","110.1640","73.9100","458.9700","13.6025","33.1471"],["AR6-KFS-700","Kiln Fields Solar Park","Solar PV","AR6","IMRP","84.4580","73.9100","427.2200","9.2511","33.1471"],["CAA-EAS-166","EA 1, Phase 1","Offshore Wind","AR1","IMRP","3569.8250","176.1200","538094.6500","25.3857","33.1471"],["CAA-EAS-167","EA 1, Phase 2","Offshore Wind","AR1","IMRP","5854.5110","176.1200","882475.2300","25.3857","33.1471"],["CAA-EAS-168","EA 1, Phase 3","Offshore Wind","AR1","IMRP","5140.5430","176.1200","774856.2900","25.3857","33.1471"],["INV-BEA-001","Beatrice Offshore Wind Farm Limited (Phase 1)","Offshore Wind","INV","IMRP","5250.5230","205.7000","894813.8800","35.2762","33.1471"],["INV-BEA-002","Beatrice Offshore Wind Farm Limited (Phase 2)","Offshore Wind","INV","IMRP","6882.7300","205.7000","1173621.3100","35.1831","33.1471"],["INV-BUR-001","Burbo Bank Extension Offshore Wind Farm","Offshore Wind","INV","IMRP","3264.8490","220.9500","673664.5500","14.6113","33.1471"],["INV-DRX-001","Drax 3rd conversion unit (unit 1)","Biomass Conversion","INV","BMRP","15094.3140","146.5100","1074865.9700","75.3000","75.3000"],["INV-DUD-001","Dudgeon Phase 1","Offshore Wind","INV","IMRP","1457.0910","220.9500","309929.2600","8.2460","33.1471"],["INV-DUD-002","Dudgeon Phase 2","Offshore Wind","INV","IMRP","3246.1110","220.9500","690625.5500","8.1952","33.1471"],["INV-DUD-003","Dudgeon Phase 3","Offshore Wind","INV","IMRP","1628.3100","220.9500","345892.4900","8.5257","33.1471"],["INV-HOR-001","Hornsea Offshore Wind Farm Phase 1","Offshore Wind","INV","IMRP","7665.1940","206.0600","484233.1800","18.3118","33.1471"],["INV-HOR-002","Hornsea Offshore Wind Farm Phase 2","Offshore Wind","INV","IMRP","7995.8500","206.0600","523906.9400","21.5467","33.1471"],["INV-HOR-003","Hornsea Offshore Wind Farm Phase 3","Offshore Wind","INV","IMRP","6272.8970","206.0600","385444.8800","15.1682","33.1471"],["INV-LYN-001","Lynemouth Power Station","Biomass Conversion","INV","BMRP","8603.4500","153.7200","674682.5300","75.3000","75.3000"],["INV-TEE-001","Teesside Renewable Energy Project","Dedicated Biomass","INV","BMRP","0.0000","183.4500","0.0000","","75.3000"],["INV-WAL-001","Walney Extension Offshore Wind Farm Phase 1","Offshore Wind","INV","IMRP","5419.1530","220.9500","373274.2200","17.5816","33.1471"],["INV-WAL-002","Walney Extension Offshore Wind Farm Phase 2","Offshore Wind","INV","IMRP","6183.9620","220.9500","427062.4100","19.0092","33.1471"]],"map":[["AAA-ACH-183","C__PSMAR001","2018-06-16",""],["AAA-BAD-185","T_BDCHW-1","2018-12-01",""],["AAA-BAN-189","T_KPMRW-1","2018-10-12",""],["AAA-BAN-190","C__FCMRO003","2025-03-01",""],["AAA-BAN-190","C__FENRG003","2022-12-01","2025-02-28"],["AAA-BAN-190","C__FMAGN003","2018-01-02","2024-03-20"],["AAA-BAN-192","C__NMAGN007","2018-11-19","2024-03-20"],["AAA-BAN-192","T_MIDMW-1","2018-07-13",""],["AAA-BRE-177","C__DSMAR010","2019-03-20",""],["AAA-BRE-177","C__DSPOW010","2019-03-20",""],["AAA-CAM-197","C__AAXPO002","2017-04-27","2023-12-07"],["AAA-CAM-197","C__ACMRO002","2024-11-20",""],["AAA-CAM-197","C__AIMPO002","2023-12-08","2024-11-19"],["AAA-CAM-197","C__ALOND002","2017-04-01","2017-04-26"],["AAA-CLO-186","C__DEDGE014","2020-02-01",""],["AAA-CLO-186","C__DNATP014","2019-10-23","2020-01-31"],["AAA-COI-196","C__PIMPO008","2019-01-23",""],["AAA-COI-196","E_CNCLW-1","2018-12-14",""],["AAA-COM-191","C__AOXPO009","2019-02-20","2026-08-24"],["AAA-COM-191","C__ASTAT009","2019-02-20",""],["AAA-DOR-182","T_DOREW-1","2018-08-14",""],["AAA-DOR-182","T_DOREW-2","2018-08-14",""],["AAA-ENE-171","C__MRWED005","2018-11-14",""],["AAA-K3C-180","C__JVETS001","2019-12-01",""],["AAA-LIG-176","C__DAXPO001","2016-06-23","2023-05-31"],["AAA-LIG-176","C__DTGPL001","2023-06-01",""],["AAA-MYN-178","C__KEDGE004","2020-03-18",""],["AAA-MYN-178","C__KNATP004","2018-12-14","2020-03-17"],["AAA-NAN-184","C__PPURE011","2019-05-22",""],["AAA-NAN-184","C__PSTAT011","2019-05-22",""],["AAA-NEA-195","T_NNGAO-1","2024-12-01",""],["AAA-NEA-195","T_NNGAO-2","2024-12-01",""],["AAA-PNE-187","T_TRLGW-1","2020-08-02",""],["AAA-SNE-179","C__NRWED014","2024-03-20",""],["AAA-SOL-181","C__NVETS013","2020-06-01",""],["AAA-SOL-181","E_SWBKW-1","2020-09-01",""],["AR2-HRN-106","T_HOWBO-1","2022-02-04",""],["AR2-HRN-206","T_HOWBO-3","2022-02-04",""],["AR2-HRN-306","T_HOWBO-2","2022-02-04",""],["AR2-MRY-107","T_MOWEO-1","2021-12-01",""],["AR2-MRY-107","T_MOWEO-2","2021-12-01",""],["AR2-MRY-107","T_MOWEO-3","2021-12-01",""],["AR2-MRY-207","T_MOWEO-1","2021-12-01",""],["AR2-MRY-207","T_MOWEO-2","2021-12-01",""],["AR2-MRY-207","T_MOWEO-3","2021-12-01",""],["AR2-MRY-307","T_MOWEO-1","2021-12-01",""],["AR2-MRY-307","T_MOWEO-2","2021-12-01",""],["AR2-MRY-307","T_MOWEO-3","2021-12-01",""],["AR2-TKN-103","T_TKNEW-1","2020-10-07",""],["AR2-TKN-103","T_TKNWW-1","2020-12-09",""],["AR2-TKN-203","T_TKNEW-1","2020-10-07",""],["AR2-TKN-203","T_TKNWW-1","2020-12-09",""],["AR2-TKN-303","T_TKNEW-1","2020-10-07",""],["AR2-TKN-303","T_TKNWW-1","2020-12-09",""],["AR3-SOW-101","T_SOFOW-11","2025-12-03",""],["AR3-SOW-101","T_SOFOW-21","2025-12-03",""],["AR3-SOW-102","T_SOFOW-11","2025-12-03",""],["AR3-SOW-102","T_SOFOW-12","2025-12-03",""],["AR3-SOW-103","T_SOFOW-12","2025-12-03",""],["AR3-SOW-103","T_SOFOW-21","2025-12-03",""],["AR3-SOW-103","T_SOFOW-22","2025-12-03",""],["AR4-ADS-700","C__BSMAE030","2025-06-27",""],["AR4-ASF-700","C__BSTAT015","2024-05-22",""],["AR4-BCW-610","T_BROCW-1","2024-12-01",""],["AR4-BFS-700","C__ASMAE053","2026-02-09",""],["AR4-BHL-700","C__HGMTR021","2025-07-25",""],["AR4-BRN-700","C__ASMAE046","2025-12-17",""],["AR4-BSL-700","C__ASMAE031","2025-06-27",""],["AR4-BSP-700","C__ESTAT019","2024-12-18",""],["AR4-CCP-700","C__HLOND040","2025-12-01",""],["AR4-CHS-700","C__FENDC067","2026-04-27",""],["AR4-CLF-700","C__HSMAE048","2025-11-07",""],["AR4-CLH-710","T_CLVHS-1","2024-12-01",""],["AR4-CNS-700","C__KFSEN024","2025-02-19",""],["AR4-CWS-610","T_CUMHW-2","2026-07-01",""],["AR4-DRF-700","C__MLOND039","2025-06-27",""],["AR4-DVR-700","C__EEDGE027","2025-12-01",""],["AR4-EST-700","C__BGMTR028","2026-03-25",""],["AR4-HFS-700","C__LVETS036","2025-09-01",""],["AR4-HHR-610","T_HAGHW-2","2025-07-16",""],["AR4-HHR-610","T_HAHAW-1","2025-07-16",""],["AR4-IGS-700","C__BLOND051","2025-09-01",""],["AR4-KWE-610","T_KLGLW-2","2027-03-31",""],["AR4-LFS-700","C__BSTAT017","2024-08-21",""],["AR4-LSF-700","C__LSTAT020","2024-12-18",""],["AR4-LYR-700","C__ASMAE033","2025-06-27",""],["AR4-MFS-700","C__BFSEN025","2025-02-19",""],["AR4-NEL-700","C__BLOND018","2024-11-20",""],["AR4-NEX-700","C__ALOND079","2026-05-14",""],["AR4-NEX-700","C__ATGPL079","2026-05-14",""],["AR4-NXP-700","C__BLOND078","2026-05-14",""],["AR4-NXP-700","C__BTGPL078","2026-05-14",""],["AR4-NXT-700","C__HLOND052","2025-08-20",""],["AR4-NXT-700","C__HTGPL052","2025-08-20",""],["AR4-OSF-700","C__AMRCY042","2026-04-01",""],["AR4-RLS-700","C__EENDC061","2026-03-23",""],["AR4-RSF-700","C__HMRCY022","2025-06-20",""],["AR4-SCL-700","C__ASMAE032","2025-06-27",""],["AR4-SDS-700","C__MSTAT041","2025-06-24",""],["AR4-SFH-700","C__ALOND047","2025-09-01",""],["AR4-SID-700","C__HSTAT016","2024-06-19",""],["AR4-SSF-700","C__HFSEN026","2025-02-19",""],["AR4-STV-700","C__BSMAE034","2025-06-27",""],["AR4-TBS-700","C__FENDC068","2026-04-27",""],["AR4-TSF-700","C__KVETS037","2025-09-01",""],["AR4-YSF-700","C__BEXGL023","2025-02-19",""],["AR5-ALS-700","C__LFSEN043","2025-06-18",""],["AR5-BBL-700","C__FGMTR062","2026-03-23",""],["AR5-BWI-610","T_BENBW-1","2025-12-01",""],["AR5-GAS-700","C__LCGLS069","2026-05-14",""],["AR5-GOS-700","C__BCGLS070","2026-05-14",""],["AR5-GRG-700","C__MGMTR063","2026-03-23",""],["AR5-KEK-700","C__HGMTR064","2026-03-23",""],["AR5-LAG-700","C__JSMAE059","2026-03-23",""],["AR5-LAS-700","C__GCGLS071","2026-05-14",""],["AR5-LIW-610","T_LIMKW-1","2026-09-01",""],["AR5-PRS-700","C__HFSEN045","2026-03-01",""],["AR5-RWS-700","C__HSMAE044","2025-09-01",""],["AR5-UDG-800","C__LMRCY049","2025-09-01",""],["AR5-WIS-700","C__BCGLS072","2026-05-14",""],["AR6-BEN-610","T_BENBW-1","2026-04-01",""],["AR6-BWA-610","T_BENBW-1","2026-04-01",""],["AR6-CBT-700","C__LNXTS065","2026-04-27",""],["AR6-CHE-700","C__BFSEN074","2026-04-27",""],["AR6-CHS-700","C__AGMTR066","2026-03-23",""],["AR6-CRI-610","T_CRYRW-4","2026-06-05",""],["AR6-EDW-600","C__NLOND077","2026-05-14",""],["AR6-HLS-700","C__LRWED056","2026-03-31",""],["AR6-KFS-700","C__HRWED054","2026-02-23",""],["AR6-KHW-600","E_KHLLW-1","2024-09-24",""],["AR6-MSO-700","C__ASMAE058","2026-03-01",""],["AR6-OSS-700","C__BENDC082","2026-09-21",""],["AR6-SKS-700","C__FENDC081","2026-09-21",""],["AR6-TAT-600","C__PSMAE055","2026-03-01",""],["AR6-WSO-700","C__FSMAE057","2026-02-23",""],["AR6-WTS-700","C__ASTAT060","2026-03-23",""],["AR7-TOS-700","C__ESQKY073","2026-05-14",""],["CAA-EAS-166","T_EAAO-1","2019-07-08",""],["CAA-EAS-166","T_EAAO-2","2019-07-08",""],["CAA-EAS-167","T_EAAO-1","2019-07-08",""],["CAA-EAS-167","T_EAAO-2","2019-07-08",""],["CAA-EAS-168","T_EAAO-1","2019-07-08",""],["CAA-EAS-168","T_EAAO-2","2019-07-08",""],["INV-BEA-001","T_BEATD-1","2018-08-01",""],["INV-BEA-001","T_BEATO-1","2018-08-01",""],["INV-BEA-001","T_BEATO-2","2018-08-01",""],["INV-BEA-002","T_BEATO-3","2018-12-01",""],["INV-BEA-002","T_BEATO-4","2018-12-01",""],["INV-BUR-001","T_BRBEO-1","2017-01-09",""],["INV-DRX-001","E__MDRX001","2016-09-09",""],["INV-DRX-001","E__MDRX002","2016-09-09",""],["INV-DRX-001","T_DRAXX-1","2016-09-09",""],["INV-DUD-001","T_DDGND-1","2017-04-01",""],["INV-DUD-001","T_DDGNO-2","2017-04-01",""],["INV-DUD-002","T_DDGNO-1","2017-08-01",""],["INV-DUD-002","T_DDGNO-3","2017-08-01",""],["INV-DUD-003","T_DDGNO-4","2017-10-01",""],["INV-HOR-001","T_HOWAO-2","2018-12-21",""],["INV-HOR-002","T_HOWAO-3","2018-12-21",""],["INV-HOR-003","T_HOWAO-1","2018-12-21",""],["INV-LYN-001","E_LYNE1","2017-07-14",""],["INV-LYN-001","E_LYNE2","2017-07-14",""],["INV-LYN-001","E_LYNE3","2017-07-14",""],["INV-TEE-001","C__FNATP012","2020-06-01",""],["INV-TEE-001","T_TSREP-1","2020-06-01",""],["INV-WAL-001","T_WLNYO-3","2017-08-15",""],["INV-WAL-002","T_WLNYO-4","2017-12-19",""]],"day2":[["AAA-DOR-182","3096.0500","120.2800","333549.1100","12.5462"],["AR2-HRN-106","8793.2730","82.4900","600576.7300","14.1904"],["AR2-HRN-206","8739.4110","82.4900","595223.6000","14.3820"],["AR2-TKN-103","3902.8270","108.2000","363815.2700","14.9816"],["AR4-CLH-710","136.4350","62.9900","6432.2600","13.2825"],["AR4-DVR-700","250.8660","67.8900","5451.2800","2.5454"],["AR4-SDS-700","146.7030","67.8900","5107.6500","7.0652"],["INV-BUR-001","4466.0070","220.9500","926804.1300","13.4259"],["INV-HOR-001","8142.9540","206.0600","1561012.0200","14.3590"],["INV-WAL-001","6667.3250","220.9500","1384093.9100","13.3564"]]};
+const $=s=>document.querySelector(s);
+const fmt=(n,d=0)=>n.toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
+const gbp=(n,d=0)=>(n<0?'−':'')+'£'+fmt(Math.abs(n),d);
+const pct=(n,d=2)=>(n>0?'+':n<0?'−':'')+fmt(Math.abs(n),d)+'%';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ROUND={INV:'Investment Contract',AR1:'Allocation Round 1',AR2:'Allocation Round 2',AR4:'Allocation Round 4',AR5:'Allocation Round 5',AR6:'Allocation Round 6'};
+
+const tip=$('#tip');
+document.addEventListener('pointermove',e=>{const t=e.target.closest&&e.target.closest('[data-tip]');
+  if(!t){tip.style.display='none';return}
+  tip.textContent=t.dataset.tip;tip.style.display='block';
+  const w=tip.offsetWidth,h=tip.offsetHeight;
+  tip.style.left=Math.max(6,Math.min(innerWidth-w-6,e.clientX+12))+'px';
+  tip.style.top=(e.clientY+h+20>innerHeight?e.clientY-h-10:e.clientY+16)+'px'});
+
+/* check: (strike - weighted price) x generation against the published payment */
+const check=o=>{if(o.G>0&&o.w!==null){o.exp=(o.S-o.w)*o.G;const gap=o.exp-o.pay;o.fail=Math.abs(gap)>Math.max(1,0.0005*Math.abs(o.exp));o.unpaid=o.fail?gap/o.S:0}return o};
+const P=D.portfolio.map(r=>check({id:r[0],name:r[1],round:r[3],ref:r[4],G:+r[5],S:+r[6],pay:+r[7],w:r[8]===''?null:+r[8]}));
+const tested=P.filter(o=>o.exp!==undefined),fails=tested.filter(o=>o.fail);
+
+/* swimlane */
+(function(){const LN=['Generator','Elexon BSC systems','EMRS','LCCC'],bx=c=>122+c*138,by=l=>10+l*66+12,cx=c=>bx(c)+64,BH=42;
+  const S=[[0,0,'Meters record','half-hourly output','Settlement meters record the generating unit\'s output every half hour.'],
+   [1,0,'CDCA aggregates','to BM Unit level','The Central Data Collection Agent collects meter data and aggregates it to BM Unit Metered Volumes.'],
+   [1,1,'SAA sends BM Unit','Metered Volumes','The Settlement Administration Agent sends volumes to EMRS at 14:00 on the sixth working day after the Settlement Day.'],
+   [2,1,'Aggregation rules:','BM Unit to CfD','EMRS aggregation rules turn BM Unit volumes into Metered Output for each CfD contract.'],
+   [2,2,'Difference Amount','calculated per hour','Metered Output × (Strike Price − Market Reference Price), with the contract\'s negative-price rule.'],
+   [2,3,'Billing statement','issued','One statement per Settlement Day, within seven business days of the billing period.'],
+   [3,2,'Strike Price and','contract terms','LCCC is the CfD counterparty. It supplies contract details, including the Strike Price, daily.'],
+   [2,4,'Payment made or','collected for LCCC','EMRS settles on behalf of LCCC, the CfD counterparty. The generator is paid within 28 calendar days, or pays within 10 working days.'],
+   [0,5,'Receives or','makes payment','Strike above reference: generator is paid. Strike below reference: generator pays.']];
+  let s='<svg viewBox="0 0 950 284" role="img" aria-label="Swimlane diagram of the daily CfD generator payment"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="var(--navy)"/></marker></defs>';
+  LN.forEach((n,i)=>{s+=`<rect class="lane${i%2?' alt':''}" x="1" y="${10+i*66}" width="948" height="66"/>`;n.split(' BSC ').forEach((t,j,a)=>s+=`<text class="lanet" x="10" y="${10+i*66+(a.length>1?28+j*15:37)}">${a.length>1&&!j?t+' BSC':t}</text>`)});
+  const A=(d,t,x,y,an)=>s+=`<path class="arrow" d="${d}" marker-end="url(#ah)"/>`+(t?`<text x="${x}" y="${y}" text-anchor="${an||'start'}" style="font-size:10px">${t}</text>`:'');
+  A(`M${cx(0)},${by(0)+BH}V${by(1)}`);A(`M${bx(0)+128},${by(1)+21}H${bx(1)}`);
+  A(`M${cx(1)},${by(1)+BH}V${by(2)}`,'6th working day, 14:00',cx(1)+7,by(2)-8);
+  A(`M${bx(1)+128},${by(2)+21}H${bx(2)}`);A(`M${bx(2)+128},${by(2)+21}H${bx(3)}`);
+  A(`M${cx(2)},${by(3)}V${by(2)+BH}`);
+  A(`M${bx(3)+128},${by(2)+21}H${bx(4)}`);
+  A(`M${bx(4)+128},${by(2)+21}H${cx(5)}V${by(0)+BH}`,'28 calendar days, or 10 working days',cx(5)-7,by(1)+25,'end');
+  S.forEach(b=>s+=`<g class="step" data-tip="${esc(b[4])}"><rect x="${bx(b[1])}" y="${by(b[0])}" width="128" height="${BH}" rx="4"/><text x="${cx(b[1])}" y="${by(b[0])+18}" text-anchor="middle">${b[2]}</text><text x="${cx(b[1])}" y="${by(b[0])+32}" text-anchor="middle">${b[3]}</text></g>`);
+  $('#swim').innerHTML=s+'</svg>'})();
+
+/* calculation model */
+const IM=D.imrp,runs=a=>{const r=a.map(()=>0);for(let i=0;i<a.length;){if(a[i]<0){let j=i;while(j<a.length&&a[j]<0)j++;for(let k=i;k<j;k++)r[k]=j-i;i=j}else i++}return r},RUN=runs(IM);
+const RULES={FLOOR:['Floor at £0','A negative price counts as £0. Every MWh earns a Difference Amount.'],
+  SIX:['Six-hour rule','Nothing is paid for hours in a run of six or more negative hours.'],
+  ZERO:['Any negative hour','Nothing is paid in any hour the price is below £0.']};
+const CASES=[
+ {cfd:'AR4-CLH-710',bmu:'T_CLVHS-1',expect:'ZERO',match:'ZERO',short:'Cleve Hill',why:'Allocation Round 4 is described as paying nothing in any negative hour. The plant also switched off from 10:00 to 14:00.'},
+ {cfd:'AR2-HRN-106',bmu:'T_HOWBO-1',expect:'SIX',match:'SIX',short:'Hornsea Two',why:'Allocation Round 2 is described as losing the payment after six negative hours in a row. The unit ran at full output through all twelve.'},
+ {cfd:'INV-HOR-001',bmu:'T_HOWAO-2',expect:'FLOOR',match:'SIX',short:'Hornsea One',why:'Other Investment Contracts fit a £0 floor on this day, so I expected the same. It does not fit. The six-hour rule does.'}];
+function model(c,rule){const hh=D.b1610[c.bmu],p=P.find(o=>o.id===c.cfd);let gen=0;
+  const hours=IM.map((pr,h)=>{const g=Math.max(hh[2*h],0)+Math.max(hh[2*h+1],0);gen+=g;
+    const paid=rule==='FLOOR'?true:rule==='SIX'?RUN[h]<6:pr>=0;
+    return{h:h+1,pr,g,paid,pay:paid?g*(p.S-Math.max(pr,0)):0}});
+  const raw=hours.reduce((a,x)=>a+x.pay,0),f=p.G/gen;
+  return{p,hours,gen,f,raw,adj:raw*f,dRaw:100*(raw/p.pay-1),dAdj:100*(raw*f/p.pay-1),unpaid:hours.filter(x=>!x.paid).reduce((a,x)=>a+x.g,0)}}
+
+const W=720,L=46,R=10,BW=(W-L-R)/24,hx=h=>L+(h-1)*BW;
+const bands=(t,b)=>IM.map((p,i)=>p<0?`<rect x="${hx(i+1)}" y="${t}" width="${BW}" height="${b-t}" fill="var(--band)"/>`:'').join('');
+function priceChart(){const H=150,T=12,B=6,y=v=>T+(120-v)/140*(H-T-B);let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hourly reference price on 12 April 2026">`+bands(T,H-B);
+  [0,40,80,120].forEach(v=>{s+=`<line class="${v?'gridl':'zero'}" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`});
+  IM.forEach((p,i)=>{const y0=y(0),y1=y(p);
+    s+=`<rect x="${hx(i+1)+3}" y="${Math.min(y0,y1)}" width="${BW-6}" height="${Math.max(1.5,Math.abs(y1-y0))}" rx="2" fill="var(--s1)"/><rect x="${hx(i+1)}" y="${T}" width="${BW}" height="${H-T-B}" fill="transparent" data-tip="Hour ${i+1} (${String(i).padStart(2,'0')}:00)\nPrice ${gbp(p,2)}/MWh"/>`});
+  $('#chPrice').innerHTML=s+`<text x="${hx(4)+4}" y="${T+11}">Below £0 in hours 4 to 15, lowest −£4.28</text></svg>`}
+function genChart(m){const H=200,T=8,B=22,max=Math.max(...m.hours.map(x=>x.g)),step=max>200?100:20,top=Math.ceil(max/step)*step,y=v=>T+(top-v)/top*(H-T-B);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hourly Metered Output, coloured by whether it earns a Difference Amount">`+bands(T,H-B);
+  for(let v=0;v<=top;v+=step)s+=`<line class="${v?'gridl':'zero'}" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  m.hours.forEach(x=>{const h=y(0)-y(x.g);
+    if(x.g>0)s+=`<path d="M${hx(x.h)+3},${y(0)}v${-Math.max(h-3,0)}q0,-3 3,-3h${BW-12}q3,0 3,3v${Math.max(h-3,0)}z" fill="var(--${x.paid?'s1':'s2'})"/>`;
+    s+=`<rect x="${hx(x.h)}" y="${T}" width="${BW}" height="${H-T-B}" fill="transparent" data-tip="Hour ${x.h}\nMetered Output ${fmt(x.g,1)} MWh\nPrice ${gbp(x.pr,2)}/MWh\n${x.paid?'Difference Amount '+gbp(x.pay):'Nothing paid under this rule'}"/><text x="${hx(x.h)+BW/2}" y="${H-7}" text-anchor="middle">${x.h}</text>`});
+  $('#chGen').innerHTML=s+'</svg>'}
+
+let cur=0,curRule=CASES[0].expect;
+function drawModel(){const c=CASES[cur],m=model(c,curRule),ok=Math.abs(m.dAdj)<0.5;
+  $('#result').innerHTML=[['Published by LCCC',gbp(m.p.pay,2)],['My calculation, loss-adjusted',gbp(m.adj,2)],[`Difference (${pct(m.dRaw)} before loss adjustment)`,pct(m.dAdj)],['Result',`<span class="pill ${ok?'ok':'no'}">${ok?'Matches within 0.5%':'Does not match'}</span>`]]
+    .map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join('');
+  $('#unitNote').textContent=`${m.p.name}. ${ROUND[m.p.round]}, Strike Price £${fmt(m.p.S,2)}/MWh, BM Unit ${c.bmu}. ${fmt(m.unpaid,1)} of ${fmt(m.gen,1)} MWh earns nothing under this rule. ${c.why}`;
+  [...$('#rules').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.r===curRule));
+  [...$('#cases').children].forEach((b,i)=>b.setAttribute('aria-pressed',i===cur));
+  genChart(m)}
+$('#cases').innerHTML=CASES.map((c,i)=>`<button type="button" data-i="${i}">${i+1}. ${c.short}</button>`).join('');
+$('#rules').innerHTML=Object.entries(RULES).map(([k,v])=>`<button type="button" data-r="${k}" data-tip="${v[1]}">${v[0]}</button>`).join('');
+$('#cases').onclick=e=>{const b=e.target.closest('button');if(b){cur=+b.dataset.i;curRule=CASES[cur].expect;drawModel()}};
+$('#rules').onclick=e=>{const b=e.target.closest('button');if(b){curRule=b.dataset.r;drawModel()}};
+
+const best=CASES.map(c=>model(c,c.match));
+$('#tests').innerHTML='<tr><th>Test</th><th>Unit</th><th>Contract</th><th>Rule that fits</th><th class="r">Before loss adjustment</th><th class="r">After</th><th>Result</th></tr>'+
+  best.map((m,i)=>`<tr><td>${i+1}</td><td>${esc(m.p.name)}</td><td>${ROUND[m.p.round]}</td><td>${RULES[CASES[i].match][0]}${CASES[i].match!==CASES[i].expect?' (expected: '+RULES[CASES[i].expect][0].toLowerCase()+')':''}</td><td class="r">${pct(m.dRaw)}</td><td class="r">${pct(m.dAdj)}</td><td><span class="pill ok">Pass</span></td></tr>`).join('');
+
+/* headline figures */
+const totGen=P.reduce((a,o)=>a+o.G,0),totUnpaid=fails.reduce((a,o)=>a+o.unpaid,0),mx=k=>Math.max(...best.map(m=>Math.abs(m[k]))),mn=Math.min(...best.map(m=>Math.abs(m.dRaw)));
+$('#figs').innerHTML=[['3 payments recalculated',`Within ${fmt(Math.ceil(mx('dAdj')*10)/10,1)}% of the published figure after loss adjustment, ${fmt(mn,1)}% to ${fmt(mx('dRaw'),1)}% before`],
+  [`${fails.length} of ${tested.length} units`,'have a published payment consistent with hours that earned no Difference Amount'],
+  [fmt(100*totUnpaid/totGen)+'% of volume',`About ${fmt(totUnpaid)} of ${fmt(totGen)} MWh of CfD generation that day earned nothing`]]
+  .map(([v,k])=>`<div class="fig"><b>${v}</b><span>${k}</span></div>`).join('');
+
+/* findings */
+const rounds=['INV','AR1','AR2','AR4','AR5','AR6'],inv=tested.filter(o=>o.round==='INV'&&o.ref==='IMRP');
+$('#roundBars').innerHTML=rounds.map(r=>{const u=tested.filter(o=>o.round===r&&o.ref==='IMRP'),g=u.reduce((a,o)=>a+o.G,0),up=u.reduce((a,o)=>a+o.unpaid,0),s=100*up/g;
+  return`<div class="hbar"><span>${ROUND[r]}</span><div class="track"><span style="width:${100-s}%;background:var(--s1)" data-tip="${ROUND[r]}\nPaid: ${fmt(g-up)} MWh"></span>${s>0?`<span style="width:${s}%;background:var(--s2)" data-tip="${ROUND[r]}\nNot paid: ${fmt(up)} MWh"></span>`:''}</div><span class="note">${fmt(s)}% not paid · ${u.filter(o=>o.fail).length} of ${u.length} units</span></div>`}).join('');
+const D2=D.day2.map(r=>{const p=P.find(o=>o.id===r[0]);return check({id:r[0],name:p.name,round:p.round,G:+r[1],S:+r[2],pay:+r[3],w:+r[4]})});
+const grp=[['Allocation Round 1 and Investment Contracts',o=>o.round==='AR1'||o.round==='INV'],['Allocation Round 2',o=>o.round==='AR2'],['Allocation Round 4',o=>o.round==='AR4']];
+$('#day2').innerHTML='<tr><th>Contracts</th><th class="r">Units checked</th><th class="r">Paid on every MWh</th></tr>'+grp.map(([n,f])=>{const u=D2.filter(f),ok=u.filter(o=>!o.fail).length;
+  return`<tr><td>${n}</td><td class="r">${u.length}</td><td class="r">${ok} <span class="pill ${ok?'ok':'no'}">${ok?'All paid':'Unpaid hours'}</span></td></tr>`}).join('');
+$('#findList').innerHTML=[
+  `<b>The rule depends on the contract.</b> On 12 April all ${tested.filter(o=>o.round==='AR1'&&o.ref==='IMRP').length} Allocation Round 1 units were paid on every MWh. Most units in later rounds were not.`,
+  `<b>The five-hour day separates the rules.</b> The Allocation Round 2 units I checked were paid in full on 11 April and the Allocation Round 4 units were not. That is consistent with a six-hour rule and an any-negative-hour rule.`,
+  `<b>The allocation round does not decide the rule.</b> ${inv.filter(o=>o.fail).length} of ${inv.length} Investment Contract units (Hornsea One, Walney Extension) had unpaid hours on 12 April, and the two I checked were paid in full on 11 April, like six-hour-rule contracts. The other ${inv.filter(o=>!o.fail).length} fit a £0 floor. I have not yet found the contract term that explains this.`
+].map(x=>`<li>${x}</li>`).join('');
+
+/* drawers */
+const drawer=$('#drawer'),shade=$('#shade');let lastBtn=null;
+function openD(k,btn){lastBtn=btn;$('#dBody').innerHTML='';$('#dBody').appendChild($('#t-'+k).content.cloneNode(true));
+  if(k==='worked')drawWorked();if(k==='map')initMap();
+  drawer.classList.add('open');shade.classList.add('open');drawer.scrollTop=0;$('#dClose').focus()}
+function closeD(){drawer.classList.remove('open');shade.classList.remove('open');if(lastBtn)lastBtn.focus()}
+document.querySelector('.bar').onclick=e=>{const b=e.target.closest('button[data-d]');if(b)openD(b.dataset.d,b)};
+$('#dClose').onclick=closeD;shade.onclick=closeD;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeD()});
+
+function drawWorked(){const m=model(CASES[0],'ZERO'),hh=D.b1610['T_CLVHS-1'],a=m.hours[16],b=m.hours[8];
+  $('#worked').innerHTML=[
+   ['Hour 17 (16:00 to 17:00)',''],
+   ['Metered Output',`${fmt(hh[32],3)} + ${fmt(hh[33],3)} = ${fmt(a.g,3)} MWh (settlement periods 33 and 34)`],
+   ['Strike Price','£'+fmt(m.p.S,2)+' per MWh'],['Market Reference Price','£'+fmt(a.pr,2)+' per MWh'],
+   ['Difference Amount',`${fmt(a.g,3)} × (${fmt(m.p.S,2)} − ${fmt(a.pr,2)}) = ${gbp(a.pay,2)}`],
+   ['Hour 9 (08:00 to 09:00)',''],
+   ['Metered Output',fmt(b.g,3)+' MWh'],['Market Reference Price',gbp(b.pr,2)+' per MWh, below £0'],
+   ['Difference Amount','£0.00 under the any-negative-hour rule'],
+   ['The whole day',''],
+   ['Sum of 24 hours',gbp(m.raw,2)],
+   ['Loss adjustment',`${fmt(m.p.G,3)} ÷ ${fmt(m.gen,3)} = ${fmt(m.f,5)}`],
+   ['My result',`${gbp(m.raw,2)} × ${fmt(m.f,5)} = ${gbp(m.adj,2)}`],
+   ['Published by LCCC',`${gbp(m.p.pay,2)}, a difference of ${pct(m.dAdj)}`]]
+   .map(([k,v])=>v===''?`<tr><th colspan="2" style="color:var(--navy)">${k}</th></tr>`:`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}
+
+function initMap(){const TODAY='2026-11-11',M=D.map.map(r=>({cfd:r[0],bmu:r[1],from:r[2],to:r[3]})),c2b={},b2c={};
+  M.forEach(m=>{(c2b[m.cfd]=c2b[m.cfd]||new Set).add(m.bmu);(b2c[m.bmu]=b2c[m.bmu]||new Set).add(m.cfd)});
+  const KIND={};Object.keys(c2b).forEach(c=>{const act=new Set(M.filter(m=>m.cfd===c&&!m.to).map(m=>m.bmu)),sh=[...c2b[c]].some(b=>b2c[b].size>1);
+    KIND[c]=sh?'Shares a BM Unit':act.size>1?'Several BM Units':'One to one'});
+  M.forEach(m=>{m.kind=KIND[m.cfd];m.st=m.to?'Ended':m.from>TODAY?'Future':'Active'});
+  const kinds=['One to one','Several BM Units','Shares a BM Unit'],kc=k=>Object.values(KIND).filter(x=>x===k).length;let mKind='';
+  $('#mapChips').innerHTML=`<button type="button" data-k="" aria-pressed="true">All ${Object.keys(c2b).length}</button>`+kinds.map(k=>`<button type="button" data-k="${k}" aria-pressed="false">${k} (${kc(k)})</button>`).join('');
+  const draw=()=>{const q=$('#mQ').value.toLowerCase(),rows=M.filter(m=>(!mKind||m.kind===mKind)&&(!q||(m.cfd+m.bmu).toLowerCase().includes(q)));
+    $('#mCount').textContent=`${rows.length} of ${M.length} rows`;
+    $('#mTable').innerHTML='<tr><th>CfD ID</th><th>BM Unit</th><th>From</th><th>To</th><th>Status</th></tr>'+rows.map(m=>`<tr><td class="id">${m.cfd}</td><td class="id">${m.bmu}</td><td>${m.from}</td><td>${m.to}</td><td><span class="pill ${m.st==='Active'?'ok':'na'}">${m.st}</span></td></tr>`).join('')};
+  $('#mapChips').onclick=e=>{const b=e.target.closest('button');if(!b)return;mKind=b.dataset.k;[...$('#mapChips').children].forEach(x=>x.setAttribute('aria-pressed',x===b));draw()};
+  $('#mQ').oninput=draw;draw()}
+
+priceChart();drawModel();
+</script>
+</body>
+</html>
